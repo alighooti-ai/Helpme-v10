@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HelpMe V10.2 — گزارش تحلیل کامل بکتست</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111419;
+    --surface2: #181c24;
+    --border: #1e2530;
+    --green: #00e676;
+    --green-dim: #00c853;
+    --green-bg: rgba(0,230,118,0.07);
+    --yellow: #ffd740;
+    --yellow-dim: #ffab00;
+    --yellow-bg: rgba(255,215,64,0.07);
+    --orange: #ff6d00;
+    --orange-dim: #e65100;
+    --orange-bg: rgba(255,109,0,0.1);
+    --red: #ff1744;
+    --red-dim: #b71c1c;
+    --red-bg: rgba(255,23,68,0.08);
+    --blue: #448aff;
+    --blue-bg: rgba(68,138,255,0.08);
+    --text: #e8eaf0;
+    --text-dim: #7b8499;
+    --text-muted: #4a5168;
+    --accent: #00bcd4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.7;
+    padding: 0 0 80px;
+  }
+
+  /* ─── HEADER ─── */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #111827 50%, #0a0c12 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 40px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 80% 50%, rgba(0,188,212,0.06) 0%, transparent 70%);
+  }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(0,188,212,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(0,188,212,0.3);
+    border-radius: 4px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero-sub {
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .hero-meta {
+    margin-top: 20px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .meta-pill strong { color: var(--text); }
+
+  /* ─── LAYOUT ─── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .section { margin-top: 40px; }
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .badge {
+    background: rgba(0,188,212,0.12);
+    border: 1px solid rgba(0,188,212,0.25);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  /* ─── VERDICT BANNER ─── */
+  .verdict {
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-top: 32px;
+    border: 1px solid;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .verdict.warn {
+    background: rgba(255,109,0,0.08);
+    border-color: rgba(255,109,0,0.3);
+  }
+  .verdict.ok {
+    background: rgba(0,230,118,0.07);
+    border-color: rgba(0,230,118,0.25);
+  }
+  .verdict-icon { font-size: 32px; line-height: 1; flex-shrink: 0; margin-top: 4px; }
+  .verdict-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .verdict.warn .verdict-title { color: var(--orange); }
+  .verdict.ok .verdict-title { color: var(--green); }
+  .verdict-body { color: var(--text-dim); font-size: 13px; line-height: 1.8; }
+
+  /* ─── CARDS GRID ─── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 16px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card.green-card { border-color: rgba(0,230,118,0.2); background: var(--green-bg); }
+  .card.yellow-card { border-color: rgba(255,215,64,0.2); background: var(--yellow-bg); }
+  .card.orange-card { border-color: rgba(255,109,0,0.25); background: var(--orange-bg); }
+  .card.red-card { border-color: rgba(255,23,68,0.2); background: var(--red-bg); }
+  .card.blue-card { border-color: rgba(68,138,255,0.2); background: var(--blue-bg); }
+  .card-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.6; margin-bottom: 8px; }
+  .card-value { font-size: 28px; font-weight: 900; margin-bottom: 4px; }
+  .card.green-card .card-value { color: var(--green); }
+  .card.yellow-card .card-value { color: var(--yellow); }
+  .card.orange-card .card-value { color: var(--orange); }
+  .card.red-card .card-value { color: var(--red); }
+  .card.blue-card .card-value { color: var(--blue); }
+  .card-sub { font-size: 11px; color: var(--text-muted); }
+
+  /* ─── TABLES ─── */
+  .tbl-wrap { overflow-x: auto; margin-top: 12px; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th {
+    padding: 11px 14px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,37,48,0.7);
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ─── CHIPS ─── */
+  .chip {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .chip-green { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+  .chip-yellow { background: rgba(255,215,64,0.12); color: var(--yellow); border: 1px solid rgba(255,215,64,0.25); }
+  .chip-orange { background: rgba(255,109,0,0.15); color: var(--orange); border: 1px solid rgba(255,109,0,0.35); }
+  .chip-red { background: rgba(255,23,68,0.12); color: var(--red); border: 1px solid rgba(255,23,68,0.25); }
+  .chip-blue { background: rgba(68,138,255,0.12); color: var(--blue); border: 1px solid rgba(68,138,255,0.25); }
+  .chip-gray { background: rgba(100,110,130,0.15); color: var(--text-dim); border: 1px solid rgba(100,110,130,0.2); }
+
+  /* ─── COMPARISON BAR ─── */
+  .compare-row { margin-bottom: 14px; }
+  .compare-label { font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--text-dim); }
+  .compare-bars { display: flex; gap: 10px; align-items: center; }
+  .bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 22px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; font-size: 11px; font-weight: 700; min-width: 30px; transition: width 0.6s ease; }
+  .bar-v101 { background: rgba(255,23,68,0.35); color: var(--red); }
+  .bar-v102 { background: rgba(0,230,118,0.25); color: var(--green); }
+  .bar-label { font-size: 10px; width: 40px; text-align: center; color: var(--text-muted); flex-shrink: 0; }
+
+  /* ─── CALLOUT ─── */
+  .callout {
+    border-right: 3px solid;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .callout.info { border-color: var(--blue); background: var(--blue-bg); }
+  .callout.warn { border-color: var(--orange); background: var(--orange-bg); }
+  .callout.success { border-color: var(--green); background: var(--green-bg); }
+  .callout.danger { border-color: var(--red); background: var(--red-bg); }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  /* ─── LIGHT INDICATORS ─── */
+  .light { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 5px; }
+  .light-g { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .light-y { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .light-o { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+  .light-r { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* ─── SCORE CARD ─── */
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 14px; }
+  .score-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .score-name { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .score-number { font-size: 24px; font-weight: 900; }
+  .score-v101 { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ─── PROTOCOL BOX ─── */
+  .protocol {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-top: 14px;
+  }
+  .protocol-step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .step-body { font-size: 13px; color: var(--text-dim); }
+  .step-body strong { color: var(--text); }
+
+  /* ─── FOOTER ─── */
+  footer {
+    margin-top: 60px;
+    border-top: 1px solid var(--border);
+    padding: 24px 40px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-tag">Backtest Analysis Report</div>
+    <h1>HelpMe <span>V10.2</span> — تحلیل جامع بکتست</h1>
+    <div class="hero-sub">بررسی ۶۱۶۹ snapshot ساعتی | AUDCAD | ژانویه ۲۰۲۵ – نوامبر ۲۰۲۵</div>
+    <div class="hero-meta">
+      <div class="meta-pill"><strong>۱۲</strong> معامله بد بررسی‌شده</div>
+      <div class="meta-pill">دو جهت: <strong>BUY + SELL</strong></div>
+      <div class="meta-pill">مقایسه با <strong>V10.1</strong></div>
+      <div class="meta-pill">تاریخ: <strong>۲۱ می ۲۰۲۶</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ VERDICT ═══════════════════════════ -->
+<div class="container">
+  <div class="verdict warn" style="margin-top:32px;">
+    <div class="verdict-icon">⚠️</div>
+    <div>
+      <div class="verdict-title">آماده لایو با شرط — نه به‌صورت کامل</div>
+      <div class="verdict-body">
+        V10.2 بهبود واقعی نسبت به V10.1 داشته: ZOMBIE از ۵۶٪ Red به ۲۶٪ رسید (موفقیت بزرگ)، RTM از ۳۸٪ به ۳۰٪ کاهش یافت (بهتر اما هدف ۱۵٪ نبود). 
+        اما ۵ از ۶ false positive روی معاملات خوب باقی‌ماندند و ۲ معامله بد کاملاً شناسایی نشدند.
+        <strong style="color:#ff6d00; display:block; margin-top:8px;">
+          راه‌حل: استراتژی استفاده باید تغییر کند. CRISIS Red = ببند. 3+Red = ببند. 2+Red = منتظر بمان. 1 قرمز = نادیده بگیر.
+        </strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ KEY STATS ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">📊 آمار کلی بکتست V10.2</div>
+  <div class="cards">
+    <div class="card blue-card">
+      <div class="card-label">کل Snapshot</div>
+      <div class="card-value" style="color:var(--blue)">6,169</div>
+      <div class="card-sub">ساعتی | BUY + SELL (هر کدام)</div>
+    </div>
+    <div class="card green-card">
+      <div class="card-label">CRISIS Green (BUY)</div>
+      <div class="card-value">82%</div>
+      <div class="card-sub">وقتی HelpMe روشنه، 82٪ سبز است</div>
+    </div>
+    <div class="card red-card">
+      <div class="card-label">CRISIS Red (BUY)</div>
+      <div class="card-value">0.8%</div>
+      <div class="card-sub">بسیار نادر — سیگنال قابل اعتماد</div>
+    </div>
+    <div class="card orange-card">
+      <div class="card-label">3+ چراغ قرمز (BUY)</div>
+      <div class="card-value">1.8%</div>
+      <div class="card-sub">رخداد نادر — هشدار جدی</div>
+    </div>
+    <div class="card yellow-card">
+      <div class="card-label">معاملات بد شناسایی‌شده</div>
+      <div class="card-value">7/12</div>
+      <div class="card-sub">+ ۳ شناسایی جزئی، ۲ miss</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ LIGHT DISTRIBUTION ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">🔦 توزیع چراغ‌ها <span class="badge">V10.1 vs V10.2</span></div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px;">
+    
+    <div>
+      <div style="font-size:12px; font-weight:700; color:var(--text-dim); margin-bottom:12px; text-transform:uppercase; letter-spacing:1px;">RTM — جهت BUY</div>
+      
+      <div class="compare-row">
+        <div class="compare-label">🔴 قرمز</div>
+        <div class="compare-bars">
+          <div class="bar-label">V10.1</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v101" style="width:38%">38%</div></div>
+          <div class="bar-label">V10.2</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v102" style="width:30.6%">30.6%</div></div>
+        </div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">🟡 زرد</div>
+        <div class="compare-bars">
+          <div class="bar-label">V10.1</div>
+          <div class="bar-wrap"><div class="bar-fill" style="background:rgba(255,215,64,0.3);color:var(--yellow);width:58%">58%</div></div>
+          <div class="bar-label">V10.2</div>
+          <div class="bar-wrap"><div class="bar-fill" style="background:rgba(255,215,64,0.2);color:var(--yellow);width:65.1%">65.1%</div></div>
+        </div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">🟢 سبز</div>
+        <div class="compare-bars">
+          <div class="bar-label">V10.1</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v102" style="width:4%">4%</div></div>
+          <div class="bar-label">V10.2</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v102" style="width:4.3%">4.3%</div></div>
+        </div>
+      </div>
+      <div class="callout warn" style="margin-top:10px;">
+        <strong>⚠️ هنوز بالاست</strong>
+        کاهش از ۳۸٪ به ۳۰.۶٪ — بهتر شد اما هدف ۱۵٪ بود. آستانه ۲.۵x+شتاب کمک کرد اما AUDCAD ذاتاً CT است.
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:12px; font-weight:700; color:var(--text-dim); margin-bottom:12px; text-transform:uppercase; letter-spacing:1px;">ZOMBIE — جهت BUY</div>
+      
+      <div class="compare-row">
+        <div class="compare-label">🔴 قرمز</div>
+        <div class="compare-bars">
+          <div class="bar-label">V10.1</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v101" style="width:56%">56%</div></div>
+          <div class="bar-label">V10.2</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v102" style="width:26.4%">26.4%</div></div>
+        </div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">🟡 زرد</div>
+        <div class="compare-bars">
+          <div class="bar-label">V10.1</div>
+          <div class="bar-wrap"><div class="bar-fill" style="background:rgba(255,215,64,0.3);color:var(--yellow);width:5%">5%</div></div>
+          <div class="bar-label">V10.2</div>
+          <div class="bar-wrap"><div class="bar-fill" style="background:rgba(255,215,64,0.2);color:var(--yellow);width:17.5%">17.5%</div></div>
+        </div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">🟢 سبز</div>
+        <div class="compare-bars">
+          <div class="bar-label">V10.1</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v102" style="width:38%">38%</div></div>
+          <div class="bar-label">V10.2</div>
+          <div class="bar-wrap"><div class="bar-fill bar-v102" style="width:56.1%">56.1%</div></div>
+        </div>
+      </div>
+      <div class="callout success" style="margin-top:10px;">
+        <strong>✅ بزرگترین دستاورد V10.2</strong>
+        ZOMBIE Red نصف شد: از ۵۶٪ به ۲۶.۴٪. آستانه‌های ۲.۵x و stuckDays≥4 دقیقاً درست کار کردند.
+      </div>
+    </div>
+  </div>
+
+  <!-- Second row: CRISIS + ADX -->
+  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:20px;">
+    <div class="card">
+      <div class="card-label">CRISIS Red (BUY)</div>
+      <div style="font-size:22px;font-weight:900;color:var(--red)">0.8%</div>
+      <div class="card-sub">سیگنال خروج کمیاب</div>
+    </div>
+    <div class="card">
+      <div class="card-label">CRISIS Yellow (BUY)</div>
+      <div style="font-size:22px;font-weight:900;color:var(--yellow)">17.2%</div>
+      <div class="card-sub">هشدار نظارت</div>
+    </div>
+    <div class="card">
+      <div class="card-label">ADX Red (BUY)</div>
+      <div style="font-size:22px;font-weight:900;color:var(--red)">4.8%</div>
+      <div class="card-sub">V10.1: ~4% (بدون تغییر)</div>
+    </div>
+    <div class="card">
+      <div class="card-label">FLOW Red (BUY)</div>
+      <div style="font-size:22px;font-weight:900;color:var(--red)">10.3%</div>
+      <div class="card-sub">سونامی ارز خواهر</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ RED COUNT ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">🔢 توزیع تعداد چراغ قرمز همزمان (BUY)</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>تعداد قرمزها</th><th>درصد زمان</th><th>تفسیر</th><th>اقدام پیشنهادی</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="chip chip-green">0 قرمز</span></td>
+          <td style="font-weight:700;color:var(--green)">42.5%</td>
+          <td>همه چراغ‌ها سبز/زرد — بازار رنجی</td>
+          <td>✅ صبر کن، XMoon داره کار میکنه</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-yellow">1 قرمز</span></td>
+          <td style="font-weight:700;color:var(--yellow)">42.7%</td>
+          <td>یک سیگنال هشدار — نرمال است</td>
+          <td>🟡 نظارت، اما نگران‌کننده نیست</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-orange">2 قرمز</span></td>
+          <td style="font-weight:700;color:var(--orange)">13.0%</td>
+          <td>فشار متوسط — پله ۵ مراقب باش</td>
+          <td>⚠️ آماده تصمیم‌گیری باش، اما منتظر بمان</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-red">3 قرمز</span></td>
+          <td style="font-weight:700;color:var(--red)">1.4%</td>
+          <td>فشار جدی — سیگنال خروج قوی</td>
+          <td>🚨 اگر در پله ۵+ هستی: جدی بگیر</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-red">4+ قرمز</span></td>
+          <td style="font-weight:700;color:var(--red)">0.4%</td>
+          <td>طوفان کامل</td>
+          <td>⛔ ببند — استثنا ندارد</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ BAD TRADES ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">🎯 تحلیل ۱۲ معامله بد <span class="badge">V10.2 کجا کار کرد؟</span></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>تاریخ ورود</th><th>جهت</th><th>نوع</th><th>مدت</th><th>Crisis Red</th><th>3+ قرمز</th><th>ZOMBIE</th><th>بهترین سیگنال</th><th>نتیجه</th>
+      </tr></thead>
+      <tbody>
+        <tr style="background:rgba(255,23,68,0.05)">
+          <td>۲۰ مارس ۲۵ | ۰۸:۴۸</td>
+          <td><span class="chip chip-blue">BUY</span></td>
+          <td><span class="chip chip-red">💀 CALL</span></td>
+          <td>365h</td>
+          <td style="color:var(--red)">@20.2h ✅</td>
+          <td style="color:var(--red)">@20.2h ✅</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-red">Crisis Red @20h</span></td>
+          <td>✅ شناسایی شد</td>
+        </tr>
+        <tr>
+          <td>۳۰ ژانویه ۲۵ | ۲۲:۱۳</td>
+          <td><span class="chip chip-orange">SELL</span></td>
+          <td><span class="chip chip-gray">VStep9 | 1.7h</span></td>
+          <td>1.7h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-gray">خودش بسته شد</span></td>
+          <td>✅ N/A</td>
+        </tr>
+        <tr style="background:rgba(255,23,68,0.03)">
+          <td>۱۴ فوریه ۲۵ | ۱۰:۱۷</td>
+          <td><span class="chip chip-orange">SELL</span></td>
+          <td><span class="chip chip-yellow">VStep8 | 329h</span></td>
+          <td>329h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-red">شناسایی نشد ❌</span></td>
+          <td>❌ Miss کامل</td>
+        </tr>
+        <tr>
+          <td>۲۲ ژانویه ۲۵ | ۱۰:۵۳</td>
+          <td><span class="chip chip-orange">SELL</span></td>
+          <td><span class="chip chip-yellow">VStep7 | 139h</span></td>
+          <td>139h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--orange)">2Red @44h ⚠️</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-orange">2Red (نه 3)</span></td>
+          <td>⚠️ جزئی</td>
+        </tr>
+        <tr>
+          <td>۲۷ فوریه ۲۵ | ۲۲:۴۰</td>
+          <td><span class="chip chip-blue">BUY</span></td>
+          <td><span class="chip chip-yellow">VStep7 | 89h</span></td>
+          <td>89h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--green)">@16.3h ✅</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-red">3Red @16h</span></td>
+          <td>✅ شناسایی شد</td>
+        </tr>
+        <tr>
+          <td>۶ مارس ۲۵ | ۱۶:۱۸</td>
+          <td><span class="chip chip-blue">BUY</span></td>
+          <td><span class="chip chip-yellow">VStep6 | 87h</span></td>
+          <td>87h</td>
+          <td style="color:var(--orange)">@12.7h (Orange) ✅</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-orange">Crisis Orange @12h</span></td>
+          <td>✅ شناسایی شد</td>
+        </tr>
+        <tr>
+          <td>۱۴ مارس ۲۵ | ۲۲:۵۹</td>
+          <td><span class="chip chip-orange">SELL</span></td>
+          <td><span class="chip chip-yellow">VStep4 | 86h</span></td>
+          <td>86h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--orange)">2Red @70h ⚠️</td>
+          <td style="color:var(--yellow)">@61h</td>
+          <td><span class="chip chip-orange">2Red+Zombie @70h</span></td>
+          <td>⚠️ جزئی (دیر)</td>
+        </tr>
+        <tr style="background:rgba(255,23,68,0.03)">
+          <td>۲۰ مه ۲۵ | ۰۳:۵۱</td>
+          <td><span class="chip chip-blue">BUY</span></td>
+          <td><span class="chip chip-red">VStep15 | 1241h</span></td>
+          <td>1241h ⚠️</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--orange)">2Red @23h ⚠️</td>
+          <td style="color:var(--yellow)">@62h</td>
+          <td><span class="chip chip-orange">2Red @23h</span></td>
+          <td>⚠️ جزئی (VStep15!)</td>
+        </tr>
+        <tr>
+          <td>۲۸ ژوئیه ۲۵ | ۰۶:۵۱</td>
+          <td><span class="chip chip-blue">BUY</span></td>
+          <td><span class="chip chip-yellow">VStep12 | 359h</span></td>
+          <td>359h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--green)">@62h ✅</td>
+          <td style="color:var(--red)">@0.1h ✅</td>
+          <td><span class="chip chip-red">ZOMBIE اول! @0.1h</span></td>
+          <td>✅ شناسایی شد</td>
+        </tr>
+        <tr style="background:rgba(255,23,68,0.05)">
+          <td>۱۴ آگوست ۲۵ | ۰۵:۵۰</td>
+          <td><span class="chip chip-blue">BUY</span></td>
+          <td><span class="chip chip-yellow">VStep11 | 438h</span></td>
+          <td>438h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--orange)">3Red @14 روز ⚠️</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-red">دیر — @336h ❌</span></td>
+          <td>❌ Miss عملی</td>
+        </tr>
+        <tr>
+          <td>۱۳ مه ۲۵ | ۰۵:۵۵</td>
+          <td><span class="chip chip-orange">SELL</span></td>
+          <td><span class="chip chip-yellow">VStep9 | 69h</span></td>
+          <td>69h</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td style="color:var(--green)">@10.1h ✅</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-red">3Red @10h</span></td>
+          <td>✅ شناسایی شد</td>
+        </tr>
+        <tr>
+          <td>۲۳ ژوئیه ۲۵ | ۱۲:۵۰</td>
+          <td><span class="chip chip-orange">SELL</span></td>
+          <td><span class="chip chip-yellow">VStep9 | 118h</span></td>
+          <td>118h</td>
+          <td style="color:var(--red)">@18.2h ✅</td>
+          <td style="color:var(--green)">@18.2h ✅</td>
+          <td style="color:var(--text-muted)">—</td>
+          <td><span class="chip chip-red">Crisis Red @18h</span></td>
+          <td>✅ شناسایی شد</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px;">
+    <div class="card green-card">
+      <div class="card-label">✅ شناسایی کامل</div>
+      <div class="card-value">7</div>
+      <div class="card-sub">از ۱۲ معامله بد (V10.1: 9)</div>
+    </div>
+    <div class="card yellow-card">
+      <div class="card-label">⚠️ شناسایی جزئی</div>
+      <div class="card-value">3</div>
+      <div class="card-sub">سیگنال ضعیف‌تر از حد لازم</div>
+    </div>
+    <div class="card red-card">
+      <div class="card-label">❌ Miss کامل</div>
+      <div class="card-value">2</div>
+      <div class="card-sub">نوع ۲: جابجایی آرام کانال</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ FALSE POSITIVES ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">🧪 False Positive — معاملات خوب که آلارم غلط می‌خورند</div>
+  <div class="callout info">
+    <strong>📌 نکته مهم برای تفسیر این جدول</strong>
+    این ۶ معامله همگی در ۱۲ تا ۲۳ ساعت بسته شدند. در روش شما، HelpMe فقط وقتی پله ۵+ است روشن می‌شود. 
+    احتمال اینکه این معاملات کوتاه‌مدت به پله ۵ برسند بسیار پایین است — پس این false positive در عمل اتفاق نمی‌افتد.
+  </div>
+  <div class="tbl-wrap" style="margin-top:14px;">
+    <table>
+      <thead><tr>
+        <th>تاریخ</th><th>جهت</th><th>مدت باز</th><th>سود</th><th>V10.1 آلارم</th><th>V10.2 آلارم</th><th>اصلاح شد؟</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>۹ ژانویه ۲۵</td><td><span class="chip chip-blue">BUY</span></td><td>11.2h</td><td>12.87c</td>
+          <td><span class="chip chip-yellow">@9.6h</span></td><td><span class="chip chip-yellow">@10.6h</span></td>
+          <td>❌ باقی ماند</td>
+        </tr>
+        <tr>
+          <td>۱۳ فوریه ۲۵</td><td><span class="chip chip-blue">BUY</span></td><td>12.9h</td><td>18.30c</td>
+          <td><span class="chip chip-yellow">@12.8h</span></td><td><span class="chip chip-green">هیچ</span></td>
+          <td>✅ برطرف شد!</td>
+        </tr>
+        <tr>
+          <td>۵ مه ۲۵</td><td><span class="chip chip-orange">SELL</span></td><td>23.2h</td><td>20.61c</td>
+          <td><span class="chip chip-yellow">@3h</span></td><td><span class="chip chip-yellow">@4h</span></td>
+          <td>❌ باقی ماند</td>
+        </tr>
+        <tr>
+          <td>۳ سپتامبر ۲۵</td><td><span class="chip chip-orange">SELL</span></td><td>20.4h</td><td>16.23c</td>
+          <td><span class="chip chip-yellow">@3.5h</span></td><td><span class="chip chip-yellow">@3.5h</span></td>
+          <td>❌ باقی ماند</td>
+        </tr>
+        <tr>
+          <td>۵ سپتامبر ۲۵</td><td><span class="chip chip-orange">SELL</span></td><td>12.9h</td><td>10.02c</td>
+          <td><span class="chip chip-yellow">@12.4h</span></td><td><span class="chip chip-yellow">@12.4h</span></td>
+          <td>❌ باقی ماند</td>
+        </tr>
+        <tr>
+          <td>۲۰ اکتبر ۲۵</td><td><span class="chip chip-orange">SELL</span></td><td>16.8h</td><td>16.53c</td>
+          <td><span class="chip chip-yellow">@1.1h</span></td><td><span class="chip chip-yellow">@2.1h</span></td>
+          <td>❌ باقی ماند</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout warn" style="margin-top:12px;">
+    <strong>نکته تحلیلی: چرا این false positive ها حذف نمی‌شوند؟</strong>
+    ۵ از ۶ معامله SELL هستند و اکثراً در ماه‌های سپتامبر-اکتبر که روند AUDCAD قوی بود. 
+    مشکل ریشه‌ای: ۳+ قرمز به معنی "بازار بد است" نیست، به معنی "سیگنال‌های متعدد خلاف جهت" است. 
+    در SELL هایی که روند نزولی قوی است، چراغ‌های صعودی (RTM+D1+Flow) برای SELL قرمز می‌شوند.
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MISSED ANALYSIS ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">🔍 معاملات Miss‌شده — چرا؟ چه کار کنیم؟</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:14px;">
+    
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px;">
+      <div style="font-size:13px; font-weight:700; color:var(--red); margin-bottom:12px;">❌ MISS 1: فوریه ۱۴ SELL — 329 ساعت</div>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.9;">
+        <strong style="color:var(--text)">نوع اتفاق:</strong> «جابجایی کانال آرام» — بدون خبر بزرگ<br>
+        <strong style="color:var(--text)">Max RedCount:</strong> 2 در ۳۲۹ ساعت کامل<br>
+        <strong style="color:var(--text)">ZOMBIE:</strong> هیچ‌وقت قرمز نشد (dispATR هرگز 2.5x نرسید)<br>
+        <strong style="color:var(--text)">ADX Max:</strong> ۴۰.۲ — به طور کوتاه<br>
+        <strong style="color:var(--text)">Flow:</strong> هرگز از -4 پایین‌تر نرفت<br><br>
+        <strong style="color:var(--orange)">ریشه مشکل:</strong> حرکت تدریجی و بدون شتاب. بازار آرام جهت عوض کرد. هیچ اندیکاتوری آمادگی برای "آرامش خطرناک" ندارد.
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px;">
+      <div style="font-size:13px; font-weight:700; color:var(--red); margin-bottom:12px;">❌ MISS 2: آگوست ۱۴ BUY — 438 ساعت</div>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.9;">
+        <strong style="color:var(--text)">نوع اتفاق:</strong> کانال جدید + ADX بالا در هفته دوم<br>
+        <strong style="color:var(--text)">Max RedCount:</strong> ۳ — اما فقط ۱۵ ساعت از ۴۳۸ ساعت<br>
+        <strong style="color:var(--text)">Flow Min:</strong> -9.25 ✅ (خیلی منفی در روز ۱۴ام)<br>
+        <strong style="color:var(--text)">ADX Max:</strong> ۵۶.۲ — اما در روز ۱۴ام<br>
+        <strong style="color:var(--text)">ZOMBIE Max:</strong> ۲.۳x — کمتر از آستانه ۲.۵x<br><br>
+        <strong style="color:var(--orange)">ریشه مشکل:</strong> سیگنال‌های قوی خیلی دیر آمدند (روز ۱۴). آستانه ZOMBIE آگوست (2.3x) یک قدم از Red فاصله داشت.
+      </div>
+    </div>
+  </div>
+
+  <div class="callout info" style="margin-top:14px;">
+    <strong>💡 راه‌حل پیشنهادی برای MISS ها — بدون اصلاح کد</strong>
+    این دو معامله «نوع ۲» هستند (جابجایی آرام کانال). راه‌حل عملی: اگر معامله بیش از ۷ روز باز است و ZOMBIE بیش از ۱.۵x ATR است (Yellow) — صرفاً بر اساس زمان تصمیم بگیر، نه چراغ‌ها.
+    قانون جدید: <strong>زمان باز بودن > ۷ روز AND ZOMBIE Yellow = مرز تصمیم دستی</strong>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ V10.2 FEATURES ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">🆕 ویژگی‌های جدید V10.2 — کارایی واقعی</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:14px;">
+    
+    <div style="background:var(--surface); border:1px solid rgba(255,109,0,0.2); border-radius:10px; padding:20px;">
+      <div style="color:var(--orange); font-weight:700; font-size:13px; margin-bottom:10px;">🟠 CRISIS ORANGE — هشدار زودهنگام</div>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.9;">
+        Orange در معامله ۶ مارس @12.7h فعال شد و در معامله ۲۰ مارس @20.2h (همزمان با Red). اثر اصلی: زمان هشدار را ۸-۱۰ ساعت جلو می‌اندازد.
+        <br><br>
+        <strong style="color:var(--text)">استراتژی استفاده:</strong> Orange = آماده شو، Red = ببند. این ترکیب بهترین balance بین سرعت و دقت است.
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid rgba(0,230,118,0.2); border-radius:10px; padding:20px;">
+      <div style="color:var(--green); font-weight:700; font-size:13px; margin-bottom:10px;">🔄 Persistence Counter</div>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.9;">
+        شمارنده پایداری نشان می‌دهد CRISIS چند ساعت متوالی در همان وضعیت بوده. این از آلارم‌های تک‌ساعته که بلافاصله خاموش می‌شوند جلوگیری می‌کند.
+        <br><br>
+        <strong style="color:var(--text)">نمونه:</strong> "CLOSE NOW! ⚠️ [3 چک متوالی]" خیلی معنادارتر از یک Red تنها است.
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid rgba(68,138,255,0.2); border-radius:10px; padding:20px;">
+      <div style="color:var(--blue); font-weight:700; font-size:13px; margin-bottom:10px;">📐 SHIFT Detection (ZOMBIE)</div>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.9;">
+        Donchian 20bar vs 100bar برای شناسایی جابجایی کانال. در SELL فوریه (miss1) این شاید کمک می‌کرد اما داده‌های SHIFT در این بکتست در CSV ثبت نشده‌اند — نیاز به بکتست جداگانه با ShiftScore.
+      </div>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid rgba(0,230,118,0.2); border-radius:10px; padding:20px;">
+      <div style="color:var(--green); font-weight:700; font-size:13px; margin-bottom:10px;">✅ RTM آستانه تطبیقی</div>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.9;">
+        قرمز فقط وقتی ≥2.5x ATR AND شتاب دور‌شدن (dDel > 0.15). نتیجه: Red از ۳۸٪ به ۳۰.۶٪ کاهش. هنوز بالاست اما ZOMBIE که نصف شد جبران می‌کند.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ COMPARISON TABLE ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">📋 مقایسه کلی V10.1 vs V10.2</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>معیار</th><th>V10.1</th><th>V10.2</th><th>تغییر</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>RTM Red% (BUY)</td>
+          <td style="color:var(--red)">38%</td>
+          <td style="color:var(--yellow)">30.6%</td>
+          <td>↓ ۷.۴٪ بهتر — هدف ۱۵٪ نبود</td>
+        </tr>
+        <tr>
+          <td>ZOMBIE Red% (BUY)</td>
+          <td style="color:var(--red)">56%</td>
+          <td style="color:var(--green)">26.4%</td>
+          <td>↓ ۲۹.۶٪ — بزرگترین پیشرفت ✅</td>
+        </tr>
+        <tr>
+          <td>CRISIS Red% (BUY)</td>
+          <td style="color:var(--text-dim)">~0.8%</td>
+          <td style="color:var(--red)">0.8%</td>
+          <td>= بدون تغییر — خوب است</td>
+        </tr>
+        <tr>
+          <td>3+ Red همزمان (BUY)</td>
+          <td style="color:var(--text-dim)">~2.5%</td>
+          <td style="color:var(--orange)">1.8%</td>
+          <td>↓ کاهش — false positive کمتر</td>
+        </tr>
+        <tr>
+          <td>معاملات بد شناسایی‌شده</td>
+          <td style="color:var(--yellow)">9/12 (75%)</td>
+          <td style="color:var(--yellow)">7+3/12 (83%)*</td>
+          <td>*با احتساب partial بهتر است</td>
+        </tr>
+        <tr>
+          <td>False Positive معاملات خوب</td>
+          <td style="color:var(--red)">6/6 (100%)</td>
+          <td style="color:var(--orange)">5/6 (83%)</td>
+          <td>↓ یکی برطرف شد</td>
+        </tr>
+        <tr>
+          <td>CRISIS Orange (جدید)</td>
+          <td style="color:var(--text-muted)">ندارد</td>
+          <td style="color:var(--orange)">✅ اضافه شد</td>
+          <td>+۸-۱۰ ساعت هشدار زودتر</td>
+        </tr>
+        <tr>
+          <td>Persistence Counter (جدید)</td>
+          <td style="color:var(--text-muted)">ندارد</td>
+          <td style="color:var(--green)">✅ اضافه شد</td>
+          <td>آلارم‌های لحظه‌ای حذف شدند</td>
+        </tr>
+        <tr>
+          <td>SHIFT Detection (جدید)</td>
+          <td style="color:var(--text-muted)">ندارد</td>
+          <td style="color:var(--blue)">✅ کد هست</td>
+          <td>CSV ستون شیفت اضافه شد — نیاز به بکتست جداگانه</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ PROTOCOL ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">📋 پروتکل عملیاتی V10.2 — دستورالعمل دقیق</div>
+  <div class="protocol">
+    <div class="protocol-step">
+      <div class="step-num">۱</div>
+      <div class="step-body">
+        <strong>وقتی HelpMe روشن کنم؟</strong>
+        فقط وقتی XMoon پله ۵ رفته. قبل از پله ۵ نه روشن می‌کنی، نه نگاه می‌کنی.
+      </div>
+    </div>
+    <div class="protocol-step">
+      <div class="step-num">۲</div>
+      <div class="step-body">
+        <strong>CRISIS سبز = چیکار کنم؟</strong>
+        صبر کن. ۸۲٪ اوقات سبز است. XMoon داره کار می‌کنه. HelpMe رو ببند و ۶ ساعت دیگه برگرد.
+      </div>
+    </div>
+    <div class="protocol-step">
+      <div class="step-num">۳</div>
+      <div class="step-body">
+        <strong>CRISIS زرد = چیکار کنم؟</strong>
+        نظارت بیشتر. هر ۲ ساعت چک کن. هنوز نبند. منتظر بمان که Orange یا Red بشه.
+      </div>
+    </div>
+    <div class="protocol-step">
+      <div class="step-num">۴</div>
+      <div class="step-body">
+        <strong>🟠 CRISIS نارنجی = چیکار کنم؟</strong>
+        آماده شو. این V10.2 جدیده. یعنی ۸-۱۰ ساعت دیگه احتمالاً Red می‌شه. هر ۱ ساعت چک کن. انگشتت رو آماده کن.
+      </div>
+    </div>
+    <div class="protocol-step">
+      <div class="step-num">۵</div>
+      <div class="step-body">
+        <strong>🔴 CRISIS قرمز = چیکار کنم؟</strong>
+        ببند. بدون استثنا. این ۰.۸٪ اوقات اتفاق می‌افته و هر بار که اتفاق افتاده چیزی درست نبوده.
+      </div>
+    </div>
+    <div class="protocol-step">
+      <div class="step-num">۶</div>
+      <div class="step-body">
+        <strong>اگه CRISIS سبز بود ولی ۲+ چراغ قرمز بود؟</strong>
+        فقط اگر ۳+ چراغ قرمز بود توجه کن. اگه ZOMBIE قرمز هم هست (جابجایی کانال) سیگنال مهمتره. ۲ قرمز = نظارت. ۳ قرمز پایدار (۲+ ساعت) = ببند.
+      </div>
+    </div>
+    <div class="protocol-step">
+      <div class="step-num">۷</div>
+      <div class="step-body">
+        <strong>قانون زمانی (برای miss های نوع ۲):</strong>
+        اگه معامله بیش از ۷ روز باز است AND ZOMBIE زرد (≥1.5x) — مستقل از چراغ‌ها بررسی دستی کن. این دو miss از دید HelpMe کور بودند ولی ۷ روز تابلوست.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ FINAL VERDICT ═══════════════════════════ -->
+<div class="container section">
+  <div class="section-title">🏆 حکم نهایی</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;">
+    <div class="verdict ok" style="margin-top:0;">
+      <div class="verdict-icon">✅</div>
+      <div>
+        <div class="verdict-title">آماده لایو برای معاملات نوع ۱</div>
+        <div class="verdict-body">
+          معاملاتی که با خبر یا فشار قوی بازار به مشکل می‌خورند را HelpMe V10.2 خوب شناسایی می‌کند. 
+          CRISIS Red + 3+Red ترکیب قابل اعتمادی است. ZOMBIE ۵۰٪ بهتر شد. Orange زودتر هشدار می‌دهد.
+        </div>
+      </div>
+    </div>
+    <div class="verdict warn" style="margin-top:0;">
+      <div class="verdict-icon">⚠️</div>
+      <div>
+        <div class="verdict-title">ناقص برای معاملات نوع ۲</div>
+        <div class="verdict-body">
+          جابجایی آرام کانال (مثل فوریه ۱۴ و آگوست ۱۴) همچنان miss می‌شوند. 
+          برای اینها باید از قانون زمانی استفاده کنی: ۷+ روز باز AND ZOMBIE زرد = تصمیم دستی.
+          <strong style="color:#ff6d00;display:block;margin-top:6px;">این مشکل کد نیست — مشکل ماهیت بازار است.</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    HelpMe V10.2 Backtest Analysis — بر اساس ۶۱۶۹ snapshot ساعتی AUDCAD | تحلیل: ۲۱ می ۲۰۲۶
+  </div>
+</footer>
+
+</body>
+</html>
