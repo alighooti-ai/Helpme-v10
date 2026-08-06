@@ -1,0 +1,526 @@
+//+------------------------------------------------------------------+
+//|                                                      AFA_v7.mq5  |
+//|         Ali's Fractal Anti-Drawdown Algorithm — V7               |
+//|                                                                  |
+//| تغییر معماری قلب سیستم (نسبت به V6):                              |
+//| مشکل V6: تشخیص Reversal به هم‌زمانیِ اجباری دو سیگنال با سرعت      |
+//| متفاوت نیاز داشت — TrendScore (سریع/پرنویز، میانگین وزنی ۵         |
+//| تایم‌فریم) + شکست Swing High/Low روی D1 (کند/نادر، فرکتال ۵-کندلی).|
+//| روی دادهٔ واقعیِ GBPNZD (۲۰۲۶.۰۱–۰۷)، در بدترین انتقال روند این دو  |
+//| شرط در ۴۳۴ ساعت متوالی، صفر بار هم‌زمان True نبودند — دیرکرد        |
+//| واقعی تا ۲۶ روز. این نسخه هر دو سیگنال قدیمی را کنار می‌گذارد و     |
+//| با یک موتور واحد جایگزین می‌کند:                                  |
+//|                                                                  |
+//|  1) فیلتر کالمن (Local-Linear-Trend, ۲-حالته) روی لگاریتم قیمت    |
+//|     H1 — یک تخمین‌گر بازگشتی برای سطح+شیب قیمت، بدون پنجرهٔ ثابت.  |
+//|     چون بازگشتی است (نه میانگین‌گیریِ روی یک بازهٔ ثابت)، ذاتاً لگ   |
+//|     کمتری از TrendScore قدیم دارد.                                |
+//|  2) CUSUM (Page-Hinkley) روی innovation استانداردشدهٔ همان فیلتر    |
+//|     کالمن — به‌جای «۸ کندل متوالی از یک آستانهٔ ثابت»، به‌صورت        |
+//|     آماری بار می‌کند که آیا خطای پیش‌بینیِ کالمن به‌طور پایدار در یک  |
+//|     جهت افتاده (یعنی رژیم واقعاً عوض شده). چون هر دو روی همان        |
+//|     جریان محاسبه می‌شوند (نه دو سیگنال مستقل با منشأ متفاوت)،        |
+//|     مشکل «هرگز هم‌زمان نمی‌شوند» از ریشه حل می‌شود.                  |
+//|                                                                  |
+//| این طراحی روی دادهٔ واقعیِ کاندل GBPNZD H1 (همان بازه‌ای که         |
+//| گزارش تشخیصی V6 رویش کار شد) با یک شبیه‌سازی پایتونی (بازتولید      |
+//| دقیق منطق زیر) اعتبارسنجی شد: دیرکرد در هر ۴ انتقال واقعیِ روند      |
+//| (۱۸ فوریه، ۸ آوریل، ۱ ژوئن، ۸ ژوئیه) بین ۰.۰ تا ۰.۷ روز بود —        |
+//| در مقابل ۱ تا ۲۶ روزِ V6. جزئیات کامل در گزارش همراه.               |
+//|                                                                  |
+//| آنچه عمداً دست‌نخورده ماند (طبق نظر خودت — Net-Close/Trailing        |
+//| جانبی‌اند، قلب مشکل تشخیص روند بود):                                |
+//|  - MaxAdverseExcursion (V6): ثابت شد کار می‌کند، بدون تغییر.        |
+//|  - قانون طلاییِ پای هج (قیمت بهتر از ورود قبلی همان جهت): بدون تغییر.|
+//|  - Trailing Stop و Net-Close: کد نگه داشته شد ولی پیش‌فرض خاموش —   |
+//|    چون در V6 ثابت شد Trailing Stop اصلاً اجازه نمی‌داد Reversal      |
+//|    امتحان شود (میانهٔ نگه‌داری ۳۷ ساعت < حداقل ۴۸ ساعت لازم).        |
+//|    حذف نشدند، فقط معطل ماندند تا قلب جدید اول روی داده واقعی        |
+//|    (و شاید جفت‌ارزهای دیگر) تأیید نهایی بگیرد.                      |
+//|                                                                  |
+//| فیلترهای حذف‌شده از مسیر تصمیم (نه از کد — قابل بازگشت):            |
+//|  - شکست ساختار D1 (Swing High/Low): جایگزینش نشد؛ CUSUM خودش       |
+//|    معیار آماریِ «چقدر شواهد کافی است» را دارد، نیازی به یک شرط      |
+//|    ساختاریِ کند و جداگانه نیست. (این خودِ علت اصلیِ دیرکرد ۲۶ روزه   |
+//|    در V6 بود — رجوع کن به گزارش تشخیصی.)                           |
+//|  - فیلتر رژیم ADX(D1)≥۲۵: در V6 باعث ۴۱ روز کامل بی‌پوزیسیونی شد     |
+//|    (ADX در آن بازه فقط ۰.۱٪ از زمان بالای ۲۵ بود). امتحان کردم یک   |
+//|    گیت مبتنی بر Efficiency Ratio هم اضافه کنم — نتیجه: باعث دیرکرد   |
+//|    ۱۲ تا ۴۵ روزه در همان لحظات حساس شد (چون ER هم مثل ساختار قدیم،   |
+//|    یک سیگنال تأییدیِ کند است). پس عمداً از قلب سیستم بیرون ماند.     |
+//|    ADX(D1) هنوز محاسبه و لاگ می‌شود (فقط اطلاعاتی، نه تصمیم‌گیر).     |
+//+------------------------------------------------------------------+
+#property copyright "Ali"
+#property version   "7.00"
+#property strict
+
+#include <Trade\Trade.mqh>
+CTrade trade;
+
+//================== INPUTS ==================
+input group "=== General ==="
+input bool   InpEnableHedge            = true;
+input int    InpMagicTrend             = 770001;
+input int    InpMagicHedge             = 770002;
+input string InpCSVFileName            = "AFA_Log_v7.csv";
+
+input group "=== Volumes ==="
+input double InpTrendLegVolume         = 0.01;
+input double InpHedgeLegVolume         = 0.01;
+
+input group "=== Kalman Trend Engine (V7 — جایگزین TrendScore) ==="
+input double InpKalman_R               = 0.000000575; // واریانس بازدهی لگاریتمیِ یک‌کندلی H1. کالیبرهٔ اولیه: GBPNZD H1، Jan-Aug 2026. برای نماد/تایم‌فریم دیگر، این را از رویِ std(diff(log(Close))) واقعیِ همان نماد دوباره حساب کن.
+input double InpKalman_QLevelRatio     = 0.174;        // Q_level = این × R. بزرگ‌تر = فیلتر سریع‌تر ولی پرنویزتر.
+input double InpKalman_QTrendRatio     = 0.0017;       // Q_trend = این × R.
+
+input group "=== CUSUM Changepoint (V7 — جایگزین ۸-کندل‌متوالی + شکست ساختار D1) ==="
+input double InpCUSUM_Slack            = 0.7;   // k: مقدار مجاز نوسان کوچکِ innovation قبل از انباشته‌شدن (بالاتر = کمتر حساس به نویز)
+input double InpCUSUM_Threshold        = 7.0;   // h: آستانهٔ انباشت برای اعلام «رژیم عوض شد»
+input double InpCUSUM_BoostFactor      = 6.0;   // بعد از هر changepoint، Q موقتاً این‌قدر ضرب می‌شود تا فیلتر سریع همگرا شود
+input int    InpCUSUM_BoostBars        = 6;     // این‌قدر کندل بعد از changepoint، Boost فعال می‌ماند
+
+input group "=== Reversal-Swap / Entry Timing (V7) ==="
+input int    InpMinHoldBars            = 48;    // حداقل نگه‌داریِ پای روند قبل از اینکه Reversal اصلاً بررسی شود
+input int    InpReversalCooldownBars   = 48;    // بعد از هر Reversal، این‌قدر کندل صبر کن قبل از Reversal بعدی (ضد لَختیِ فوری)
+input double InpTrendConfirmZ          = 1.0;   // برای «تأیید ادامهٔ روند» در بستن هج (fallback) — |شیب کالمن|/انحراف‌معیارش باید از این بیشتر باشد
+
+input group "=== Hedge Leg - Open ==="
+input double InpHedgeOpenATRMult       = 1.0;
+input double InpHurstThreshold         = 0.50;
+input int    InpHurstBars              = 100;
+
+input group "=== Hedge Leg - Close (fallback، وقتی Net-Close نرسیده یا خاموش است) ==="
+input double InpHedgeCloseRetraceP     = 0.5;
+input double InpSpikeATRRatio          = 2.5;
+
+input group "=== Net-Close (جانبی — پیش‌فرض خاموش، رجوع کن به کامنت بالای فایل) ==="
+input bool   InpEnableNetClose         = false;
+input double InpNetCloseTargetProfit   = 0.02;
+
+input group "=== Trailing Stop روی پای روند (جانبی — پیش‌فرض خاموش، رجوع کن به کامنت بالای فایل) ==="
+input bool   InpEnableTrailingStop     = false;
+input double InpTrailingMinProfitATR   = 1.5;
+input double InpTrailingATRMult        = 2.0;
+
+input group "=== Max Adverse Excursion — سقف ضرر مستقل (V6 — بدون تغییر، ثابت شد کار می‌کند) ==="
+input bool   InpEnableMaxAdverse       = true;
+input double InpMaxAdverseATR          = 6.0;
+
+input group "=== Risk Gate ==="
+input double InpMaxSpikeRatioBlock     = 3.0;
+
+input group "=== ADX(D1) — فقط اطلاعاتی/لاگ، دیگر تصمیم‌گیر نیست (رجوع کن به کامنت بالای فایل) ==="
+input int    InpADXPeriod              = 14;
+
+//================== GLOBALS ==================
+int      hATR_H1, hADX_D1;
+datetime g_lastBarTime         = 0;
+int      g_trendDir            = 0;
+ulong    g_trendTicket         = 0;
+ulong    g_hedgeTicket         = 0;
+bool     g_hedgeOpenEver       = false;
+double   g_lastHedgeEntryPrice = 0.0;
+double   g_lastHedgeClosePrice = 0.0;
+double   g_hedgeAdverseExtreme = 0.0;
+double   g_trendOpenPrice      = 0.0;
+double   g_trendPeakPrice      = 0.0;
+int      g_holdBarCount        = 0;
+int      g_cooldownCounter     = 0;
+int      g_csvHandle           = INVALID_HANDLE;
+bool     g_eventThisBar        = false;
+
+// --- Kalman + CUSUM state (V7) ---
+bool     g_kInit          = false;
+double   g_kLevel         = 0.0;
+double   g_kTrend         = 0.0;
+double   g_kP00=1e-4, g_kP01=0.0, g_kP10=0.0, g_kP11=1e-6;
+double   g_kZ             = 0.0;   // innovation استانداردشدهٔ همین کندل (برای لاگ)
+double   g_cusumPos       = 0.0;
+double   g_cusumNeg       = 0.0;
+int      g_boostBarsLeft  = 0;
+int      g_lastChangepoint= 0;     // این کندل: +1 / -1 / 0
+
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   hATR_H1  = iATR(_Symbol, PERIOD_H1,  14);
+   hADX_D1  = iADX(_Symbol, PERIOD_D1, InpADXPeriod);
+
+   if(hATR_H1==INVALID_HANDLE || hADX_D1==INVALID_HANDLE)
+   { Print("AFA V7: handle error"); return(INIT_FAILED); }
+
+   g_csvHandle = FileOpen(InpCSVFileName, FILE_WRITE|FILE_CSV|FILE_ANSI, ',');
+   if(g_csvHandle != INVALID_HANDLE)
+      FileWrite(g_csvHandle,
+                "Time","TrendDir","Kalman_Trend","Kalman_Z","CUSUM_Pos","CUSUM_Neg","Changepoint",
+                "Hurst","ATR_H1","SpikeRatio","ADX_D1","HoldBars","CooldownLeft",
+                "TrendTicket","HedgeTicket","Event","PnL_USD","Balance","Equity");
+
+   trade.SetExpertMagicNumber(InpMagicTrend);
+   return(INIT_SUCCEEDED);
+}
+
+void OnDeinit(const int reason)
+{ if(g_csvHandle!=INVALID_HANDLE) FileClose(g_csvHandle); }
+
+//====== Hurst روی بازده (پنجره‌بندی غیرهمپوشان) — بدون تغییر از V6، هنوز برای پای هج لازم است ======
+double CalcHurstH1(int bars)
+{
+   if(bars<40) return 0.5;
+   double prices[];
+   ArraySetAsSeries(prices,false);
+   if(CopyClose(_Symbol,PERIOD_H1,1,bars+1,prices)<bars+1) return 0.5;
+   double ret[]; ArrayResize(ret,bars);
+   for(int i=0;i<bars;i++){
+      if(prices[i]<=0||prices[i+1]<=0) return 0.5;
+      ret[i]=MathLog(prices[i+1])-MathLog(prices[i]);
+   }
+   int lags[4]={5,10,20,40};
+   double logRS[4],logL[4]; int vp=0;
+   for(int li=0;li<4;li++){
+      int lag=lags[li],nw=bars/lag;
+      if(nw<2) continue;
+      double sRS=0; int cRS=0;
+      for(int wi=0;wi<nw;wi++){
+         int b=wi*lag; double mn=0;
+         for(int i=0;i<lag;i++) mn+=ret[b+i]; mn/=lag;
+         double cum=0,mx=0,mi=0;
+         for(int i=0;i<lag;i++){
+            cum+=(ret[b+i]-mn);
+            if(i==0){mx=cum;mi=cum;}
+            else{if(cum>mx)mx=cum;if(cum<mi)mi=cum;}
+         }
+         double rng=mx-mi,sd=0;
+         for(int i=0;i<lag;i++) sd+=MathPow(ret[b+i]-mn,2);
+         sd=MathSqrt(sd/lag);
+         if(sd>0&&rng>0){sRS+=rng/sd;cRS++;}
+      }
+      if(cRS==0) continue;
+      logRS[vp]=MathLog(sRS/cRS); logL[vp]=MathLog((double)lag); vp++;
+   }
+   if(vp<2) return 0.5;
+   double sx=0,sy=0,sxy=0,sx2=0;
+   for(int i=0;i<vp;i++){sx+=logL[i];sy+=logRS[i];sxy+=logL[i]*logRS[i];sx2+=logL[i]*logL[i];}
+   double n=vp,dn=(n*sx2-sx*sx);
+   if(dn==0) return 0.5;
+   double H=(n*sxy-sx*sy)/dn;
+   return MathMax(0.0,MathMin(1.0,H));
+}
+
+double CalcSpikeRatioH1()
+{
+   double atr[1];
+   if(CopyBuffer(hATR_H1,0,1,1,atr)!=1||atr[0]<=0) return 1.0;
+   return (iHigh(_Symbol,PERIOD_H1,1)-iLow(_Symbol,PERIOD_H1,1))/atr[0];
+}
+double GetATR_H1()
+{ double a[1]; return (CopyBuffer(hATR_H1,0,1,1,a)==1)?a[0]:0.0; }
+double GetADX_D1()
+{ double a[1]; return (CopyBuffer(hADX_D1,0,1,1,a)==1)?a[0]:0.0; }
+
+//====== قلب V7: کالمن (Local-Linear-Trend) + CUSUM روی innovation خودش ======
+//====== یک‌بار در هر کندل H1 صدا زده می‌شود؛ g_kTrend و g_lastChangepoint را به‌روز می‌کند ======
+double KalmanConfidence(){ return (g_kP11>0) ? MathAbs(g_kTrend)/MathSqrt(g_kP11) : 0.0; }
+
+void UpdateKalmanCUSUM()
+{
+   double price = MathLog(iClose(_Symbol,PERIOD_H1,1));
+   g_lastChangepoint = 0;
+   if(!g_kInit) { g_kLevel=price; g_kInit=true; g_kZ=0.0; return; }
+
+   double boost = (g_boostBarsLeft>0) ? InpCUSUM_BoostFactor : 1.0;
+   if(g_boostBarsLeft>0) g_boostBarsLeft--;
+   double qL = InpKalman_QLevelRatio * InpKalman_R * boost;
+   double qT = InpKalman_QTrendRatio * InpKalman_R * boost;
+
+   // --- Predict ---
+   double levelPred = g_kLevel + g_kTrend;
+   double trendPred = g_kTrend;
+   double P00p = g_kP00+g_kP01+g_kP10+g_kP11+qL;
+   double P01p = g_kP01+g_kP11;
+   double P10p = g_kP10+g_kP11;
+   double P11p = g_kP11+qT;
+
+   // --- Update ---
+   double y = price - levelPred;                  // innovation
+   double S = P00p + InpKalman_R;
+   double K0 = P00p/S, K1 = P10p/S;
+
+   g_kLevel = levelPred + K0*y;
+   g_kTrend = trendPred + K1*y;
+   g_kP00 = (1-K0)*P00p;
+   g_kP01 = (1-K0)*P01p;
+   g_kP10 = P10p - K1*P00p;
+   g_kP11 = P11p - K1*P01p;
+
+   g_kZ = y/MathSqrt(S);                            // innovation استانداردشده
+
+   // --- CUSUM (Page-Hinkley) روی g_kZ ---
+   g_cusumPos = MathMax(0.0, g_cusumPos + g_kZ - InpCUSUM_Slack);
+   g_cusumNeg = MathMin(0.0, g_cusumNeg + g_kZ + InpCUSUM_Slack);
+
+   if(g_cusumPos > InpCUSUM_Threshold)
+   { g_lastChangepoint=1;  g_cusumPos=0.0; g_cusumNeg=0.0; g_boostBarsLeft=InpCUSUM_BoostBars; }
+   else if(g_cusumNeg < -InpCUSUM_Threshold)
+   { g_lastChangepoint=-1; g_cusumPos=0.0; g_cusumNeg=0.0; g_boostBarsLeft=InpCUSUM_BoostBars; }
+}
+
+bool PosExists(ulong t){ return(t!=0&&PositionSelectByTicket(t)); }
+
+double GetLastDealPnL()
+{
+   ulong dt=trade.ResultDeal();
+   if(dt==0||!HistoryDealSelect(dt)) return 0.0;
+   return HistoryDealGetDouble(dt,DEAL_PROFIT)
+         +HistoryDealGetDouble(dt,DEAL_SWAP)
+         +HistoryDealGetDouble(dt,DEAL_COMMISSION);
+}
+
+double GetFloatingPnL(ulong ticket)
+{
+   if(!PosExists(ticket)) return 0.0;
+   return PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
+}
+
+void LogRow(string ev, double h, double atr, double sr, double adx, double pnl=0.0)
+{
+   if(g_csvHandle==INVALID_HANDLE) return;
+   FileWrite(g_csvHandle,
+             TimeToString(TimeCurrent(),TIME_DATE|TIME_MINUTES),
+             g_trendDir,
+             DoubleToString(g_kTrend,8), DoubleToString(g_kZ,3),
+             DoubleToString(g_cusumPos,3), DoubleToString(g_cusumNeg,3), g_lastChangepoint,
+             DoubleToString(h,3),
+             DoubleToString(atr,_Digits), DoubleToString(sr,2), DoubleToString(adx,2),
+             g_holdBarCount, g_cooldownCounter,
+             (long)g_trendTicket, (long)g_hedgeTicket,
+             ev,
+             DoubleToString(pnl,2),
+             DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE),2),
+             DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY),2));
+   g_eventThisBar = true;
+}
+
+void ResetHedgeCycleState()
+{
+   g_hedgeOpenEver       = false;
+   g_lastHedgeEntryPrice = 0.0;
+   g_lastHedgeClosePrice = 0.0;
+   g_hedgeAdverseExtreme = 0.0;
+}
+
+void ResetAfterReversal()
+{
+   g_holdBarCount    = 0;
+   g_cooldownCounter = InpReversalCooldownBars;
+   ResetHedgeCycleState();
+   // توجه: g_cusumPos/g_cusumNeg نیازی به ریست دستی ندارند — UpdateKalmanCUSUM خودش
+   // همان لحظه‌ای که changepoint اعلام می‌کند این دو را صفر می‌کند.
+}
+
+bool OpenFreshTrend(int dir)
+{
+   trade.SetExpertMagicNumber(InpMagicTrend);
+   bool ok=(dir==1)?trade.Buy(InpTrendLegVolume,_Symbol,0,0,0,"AFA_TREND")
+                   :trade.Sell(InpTrendLegVolume,_Symbol,0,0,0,"AFA_TREND");
+   if(ok)
+   {
+      g_trendTicket = trade.ResultOrder();
+      g_trendDir    = dir;
+      double refP   = (dir==1)?SymbolInfoDouble(_Symbol,SYMBOL_ASK):SymbolInfoDouble(_Symbol,SYMBOL_BID);
+      g_trendOpenPrice = refP;
+      g_trendPeakPrice = refP;
+   }
+   else { g_trendTicket=0; g_trendDir=0; }
+   return ok;
+}
+
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   datetime curBar=iTime(_Symbol,PERIOD_H1,0);
+   if(curBar==g_lastBarTime) return;
+   g_lastBarTime=curBar;
+   g_eventThisBar=false;
+
+   if(g_trendDir!=0) g_holdBarCount++;
+   if(g_cooldownCounter>0) g_cooldownCounter--;
+
+   UpdateKalmanCUSUM();   // قلب V7 — یک‌بار در هر کندل، قبل از هر تصمیمی
+
+   double h    = CalcHurstH1(InpHurstBars);
+   double atr  = GetATR_H1();
+   double sr   = CalcSpikeRatioH1();
+   double adx  = GetADX_D1();          // فقط اطلاعاتی/لاگ — دیگر گیت تصمیم نیست
+   bool   spike    = (sr>=InpSpikeATRRatio);
+   bool   spikeBlk = (sr>=InpMaxSpikeRatioBlock);
+
+   if(g_trendTicket!=0&&!PosExists(g_trendTicket)){g_trendTicket=0;g_trendDir=0;}
+   if(g_hedgeTicket!=0&&!PosExists(g_hedgeTicket)) g_hedgeTicket=0;
+
+   //===== STEP 1: بدون پای روند -> ورود اولیه فقط با یک changepoint واقعی =====
+   if(g_trendDir==0)
+   {
+      if(!spikeBlk && g_lastChangepoint!=0)
+      {
+         int wantDir = g_lastChangepoint;
+         if(OpenFreshTrend(wantDir)) { ResetAfterReversal(); LogRow("OPEN_TREND",h,atr,sr,adx); }
+         else LogRow("ORDER_FAILED",h,atr,sr,adx);   // رفع باگ V6: دیگر «OPEN_TREND» شبح لاگ نمی‌شود
+      }
+      else LogRow("IDLE_WAIT_TREND",h,atr,sr,adx);
+      return;
+   }
+
+   //===== STEP 1.5: به‌روزرسانی قلهٔ قیمت + Trailing Stop (جانبی — پیش‌فرض خاموش) =====
+   double closeP = iClose(_Symbol,PERIOD_H1,1);
+   if(g_trendDir==1) g_trendPeakPrice = MathMax(g_trendPeakPrice, closeP);
+   else               g_trendPeakPrice = MathMin(g_trendPeakPrice, closeP);
+
+   if(InpEnableTrailingStop)
+   {
+      double peakProfit = (g_trendDir==1) ? (g_trendPeakPrice-g_trendOpenPrice) : (g_trendOpenPrice-g_trendPeakPrice);
+      double giveBack   = (g_trendDir==1) ? (g_trendPeakPrice-closeP)           : (closeP-g_trendPeakPrice);
+      bool wasProfitable = (atr>0) && (peakProfit >= InpTrailingMinProfitATR*atr);
+      bool trailHit       = wasProfitable && (atr>0) && (giveBack >= InpTrailingATRMult*atr);
+      if(trailHit)
+      {
+         double hp=0,tp=0;
+         if(g_hedgeTicket!=0 && PosExists(g_hedgeTicket)){ trade.PositionClose(g_hedgeTicket); hp=GetLastDealPnL(); }
+         if(PosExists(g_trendTicket)){ trade.PositionClose(g_trendTicket); tp=GetLastDealPnL(); }
+         LogRow("TRAILING_STOP_TREND",h,atr,sr,adx,tp+hp);
+         g_trendTicket=0; g_hedgeTicket=0; g_trendDir=0;
+         ResetAfterReversal();
+         return;
+      }
+   }
+
+   //===== STEP 1.6: سقف ضرر مستقل (V6 — بدون تغییر) =====
+   if(InpEnableMaxAdverse && atr>0)
+   {
+      double adverseNow = (g_trendDir==1) ? (g_trendOpenPrice-closeP) : (closeP-g_trendOpenPrice);
+      if(adverseNow >= InpMaxAdverseATR*atr)
+      {
+         double hp=0,tp=0;
+         if(g_hedgeTicket!=0 && PosExists(g_hedgeTicket)){ trade.PositionClose(g_hedgeTicket); hp=GetLastDealPnL(); }
+         if(PosExists(g_trendTicket)){ trade.PositionClose(g_trendTicket); tp=GetLastDealPnL(); }
+         LogRow("MAX_ADVERSE_STOP",h,atr,sr,adx,tp+hp);
+         g_trendTicket=0; g_hedgeTicket=0; g_trendDir=0;
+         ResetAfterReversal();
+         return;
+      }
+   }
+
+   //===== STEP 2: Reversal-Swap — یک changepoint در جهت مخالف پای روند فعلی =====
+   bool holdOK = (g_holdBarCount >= InpMinHoldBars);
+   bool coolOK = (g_cooldownCounter == 0);
+   bool doReversal = (g_lastChangepoint == -g_trendDir) && holdOK && coolOK;
+
+   if(doReversal)
+   {
+      if(g_hedgeTicket!=0 && PosExists(g_hedgeTicket))
+      {
+         trade.PositionClose(g_hedgeTicket);
+         double hp=GetLastDealPnL();
+         LogRow("CLOSE_HEDGE_FOR_REVERSAL",h,atr,sr,adx,hp);
+         g_hedgeTicket=0;
+      }
+      double tpnl=0.0;
+      if(g_trendTicket!=0 && PosExists(g_trendTicket))
+      { trade.PositionClose(g_trendTicket); tpnl=GetLastDealPnL(); }
+      LogRow("CLOSE_TREND_ON_REVERSAL",h,atr,sr,adx,tpnl);
+      g_trendTicket=0;
+
+      int newDir=-g_trendDir;
+      if(OpenFreshTrend(newDir)) { ResetAfterReversal(); LogRow("OPEN_TREND_AFTER_REVERSAL",h,atr,sr,adx); }
+      else { ResetAfterReversal(); LogRow("ORDER_FAILED",h,atr,sr,adx); }
+      return;
+   }
+
+   if(!InpEnableHedge)
+   { if(!g_eventThisBar) LogRow("BAR_TICK",h,atr,sr,adx); return; }
+
+   //===== STEP 3: مدیریت پای هج — بدون تغییر از V6 (قانون طلایی دست‌نخورده) =====
+   double curPrice=(g_trendDir==1)?SymbolInfoDouble(_Symbol,SYMBOL_BID):SymbolInfoDouble(_Symbol,SYMBOL_ASK);
+
+   // --- STEP 3a: Net-Close (جانبی — پیش‌فرض خاموش) ---
+   if(InpEnableNetClose && g_hedgeTicket!=0)
+   {
+      double combined = GetFloatingPnL(g_trendTicket) + GetFloatingPnL(g_hedgeTicket);
+      if(combined >= InpNetCloseTargetProfit)
+      {
+         double hp=0,tp=0;
+         if(PosExists(g_hedgeTicket)){ trade.PositionClose(g_hedgeTicket); hp=GetLastDealPnL(); }
+         if(PosExists(g_trendTicket)){ trade.PositionClose(g_trendTicket); tp=GetLastDealPnL(); }
+         g_hedgeTicket=0; g_trendTicket=0;
+         LogRow("NET_CLOSE_BOTH",h,atr,sr,adx,tp+hp);
+
+         int keepDir = g_trendDir;   // OpenFreshTrend fail بشود g_trendDir را صفر می‌کند، پس جهت را جلوتر نگه داریم
+         if(OpenFreshTrend(keepDir==0?1:keepDir)) { ResetHedgeCycleState(); LogRow("REOPEN_TREND_AFTER_NETCLOSE",h,atr,sr,adx); }
+         else LogRow("ORDER_FAILED",h,atr,sr,adx);
+         return;
+      }
+   }
+
+   if(g_hedgeTicket==0)
+   {
+      double refPrice;
+      if(g_hedgeOpenEver) refPrice=g_lastHedgeClosePrice;
+      else if(PosExists(g_trendTicket)) refPrice=PositionGetDouble(POSITION_PRICE_OPEN);
+      else refPrice=curPrice;
+
+      double advMove=(g_trendDir==1)?(refPrice-curPrice):(curPrice-refPrice);
+      bool mOK  = advMove>=InpHedgeOpenATRMult*atr;
+      bool hOK  = h<InpHurstThreshold;
+      bool sOK  = !spike && !spikeBlk;
+
+      bool monoOK=true;
+      if(g_hedgeOpenEver)
+      {
+         if(g_trendDir==1) monoOK=(curPrice>g_lastHedgeEntryPrice);
+         else               monoOK=(curPrice<g_lastHedgeEntryPrice);
+      }
+
+      if(mOK&&hOK&&sOK&&monoOK)
+      {
+         int hdir=-g_trendDir;
+         trade.SetExpertMagicNumber(InpMagicHedge);
+         bool ok=(hdir==1)?trade.Buy(InpHedgeLegVolume,_Symbol,0,0,0,"AFA_HEDGE")
+                          :trade.Sell(InpHedgeLegVolume,_Symbol,0,0,0,"AFA_HEDGE");
+         trade.SetExpertMagicNumber(InpMagicTrend);
+         if(ok){
+            g_hedgeTicket=trade.ResultOrder();
+            g_lastHedgeEntryPrice=curPrice;
+            g_hedgeOpenEver=true;
+            g_hedgeAdverseExtreme=curPrice;
+            LogRow("OPEN_HEDGE",h,atr,sr,adx);
+         }
+      }
+   }
+   else
+   {
+      if(g_trendDir==1) g_hedgeAdverseExtreme=MathMin(g_hedgeAdverseExtreme,curPrice);
+      else               g_hedgeAdverseExtreme=MathMax(g_hedgeAdverseExtreme,curPrice);
+
+      double advT=(g_trendDir==1)?(g_lastHedgeEntryPrice-g_hedgeAdverseExtreme)
+                                  :(g_hedgeAdverseExtreme-g_lastHedgeEntryPrice);
+      double retF=(g_trendDir==1)?(curPrice-g_hedgeAdverseExtreme)
+                                  :(g_hedgeAdverseExtreme-curPrice);
+      bool rOK   =(advT>0)&&(retF>=InpHedgeCloseRetraceP*advT);
+      // trOK («روند اصلی برگشت/ادامه یافت») قبلاً از TrendScore می‌آمد؛ حالا از خودِ کالمن:
+      bool trOK  = (KalmanConfidence()>=InpTrendConfirmZ) &&
+                   (((g_trendDir==1)&&(g_kTrend>0)) || ((g_trendDir==-1)&&(g_kTrend<0)));
+      bool spSafe=spike;
+
+      if(rOK||trOK||spSafe)
+      {
+         double hp=0.0;
+         if(PosExists(g_hedgeTicket)){trade.PositionClose(g_hedgeTicket);hp=GetLastDealPnL();}
+         g_lastHedgeClosePrice=curPrice; g_hedgeTicket=0; g_hedgeAdverseExtreme=0.0;
+         string ev=rOK?"CLOSE_HEDGE_RETRACE":(trOK?"CLOSE_HEDGE_TREND_RESUMED":"CLOSE_HEDGE_SPIKE_SAFETY");
+         LogRow(ev,h,atr,sr,adx,hp);
+      }
+   }
+
+   if(!g_eventThisBar) LogRow("BAR_TICK",h,atr,sr,adx);
+}
+//+------------------------------------------------------------------+
